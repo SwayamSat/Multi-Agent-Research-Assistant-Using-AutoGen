@@ -26,9 +26,11 @@ from autogen_core.models import (
 from autogen_core.tools import Tool
 from autogen_core._types import FunctionCall
 from typing import AsyncGenerator, Union
+import asyncio
+import requests
 
 class CustomGeminiClient(ChatCompletionClient):
-    def __init__(self, api_key: str, model: str = "gemini-1.5-flash"):
+    def __init__(self, api_key: str, model: str = "gemini-2.0-flash"):
         self.api_key = api_key
         self.model = model
         self.base_url = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions"
@@ -134,15 +136,29 @@ class CustomGeminiClient(ChatCompletionClient):
         # Prepare tools if any
         tools_payload = []
         if tools:
+            # print(f"DEBUG: tools type: {type(tools)}")
+            # if len(tools) > 0:
+            #     print(f"DEBUG: first tool type: {type(tools[0])}")
+            #     print(f"DEBUG: first tool: {tools[0]}")
             for tool in tools:
-                tools_payload.append({
-                    "type": "function",
-                    "function": {
-                        "name": tool.name,
-                        "description": tool.description,
-                        "parameters": tool.schema["parameters"] if "parameters" in tool.schema else tool.schema
-                    }
-                })
+                if isinstance(tool, dict):
+                     tools_payload.append({
+                        "type": "function",
+                        "function": {
+                            "name": tool["name"],
+                            "description": tool.get("description"),
+                            "parameters": tool.get("parameters", tool.get("schema", {}))
+                        }
+                    })
+                else:
+                    tools_payload.append({
+                        "type": "function",
+                        "function": {
+                            "name": tool.name,
+                            "description": tool.description,
+                            "parameters": tool.schema["parameters"] if "parameters" in tool.schema else tool.schema
+                        }
+                    })
 
         payload = {
             "model": self.model,
@@ -153,50 +169,74 @@ class CustomGeminiClient(ChatCompletionClient):
             payload["tools"] = tools_payload
 
         # DEBUG PRINT
-        print(f"DEBUG: URL={self.base_url}")
-        try:
-            with open("debug_payload.json", "w") as f:
-                json.dump(payload, f, indent=2)
-        except Exception as e:
-            print(f"DEBUG: Failed to write payload: {e}")
+        # print(f"DEBUG: URL={self.base_url}")
+        # try:
+        #     with open("debug_payload.json", "w") as f:
+        #         json.dump(payload, f, indent=2)
+        # except Exception as e:
+        #     print(f"DEBUG: Failed to write payload: {e}")
             
         headers = {
             "Content-Type": "application/json",
             "Authorization": f"Bearer {self.api_key}"
         }
 
-        async with httpx.AsyncClient() as client:
-            response = await client.post(self.base_url, headers=headers, json=payload, timeout=60.0)
+        if not hasattr(self, 'session'):
+            from requests.adapters import HTTPAdapter
+            from urllib3.util.retry import Retry
             
-            if response.status_code != 200:
-                raise RuntimeError(f"Gemini API Error {response.status_code}: {response.text}")
-
-            data = response.json()
-            choice = data["choices"][0]
-            message = choice["message"]
-            content = message.get("content", "")
-            
-            # Handle Tool Calls response
-            tool_calls = []
-            if "tool_calls" in message:
-                for tc in message["tool_calls"]:
-                    tool_calls.append(FunctionCall(
-                        id=tc["id"], 
-                        arguments=tc["function"]["arguments"], 
-                        name=tc["function"]["name"]
-                    ))
-            
-            result_content = content
-            if tool_calls:
-                result_content = tool_calls
-
-            usage = data.get("usage", {})
-            
-            return CreateResult(
-                content=result_content,
-                usage=RequestUsage(
-                    prompt_tokens=usage.get("prompt_tokens", 0),
-                    completion_tokens=usage.get("completion_tokens", 0)
-                ),
-                finish_reason="stop" 
+            self.session = requests.Session()
+            retry_strategy = Retry(
+                total=5,
+                backoff_factor=1,
+                status_forcelist=[429, 500, 502, 503, 504],
+                allowed_methods=["HEAD", "GET", "OPTIONS", "POST"],
+                # SSLEOFError is a connection error. urllib3 might handle it if we retry connection errors.
             )
+            adapter = HTTPAdapter(max_retries=retry_strategy)
+            self.session.mount("https://", adapter)
+            self.session.mount("http://", adapter)
+
+        # Use requests via asyncio.to_thread
+        def _make_request():
+            try:
+                return self.session.post(self.base_url, headers=headers, json=payload, timeout=60.0)
+            except Exception as e:
+                # Catch SSLEOFError specifically if requests doesn't handle it
+                raise RuntimeError(f"Connection failed after retries: {e}")
+
+        response = await asyncio.to_thread(_make_request)
+            
+        if response.status_code != 200:
+            raise RuntimeError(f"Gemini API Error {response.status_code}: {response.text}")
+
+        data = response.json()
+        choice = data["choices"][0]
+        message = choice["message"]
+        content = message.get("content", "")
+        
+        # Handle Tool Calls response
+        tool_calls = []
+        if "tool_calls" in message:
+            for tc in message["tool_calls"]:
+                tool_calls.append(FunctionCall(
+                    id=tc["id"], 
+                    arguments=tc["function"]["arguments"], 
+                    name=tc["function"]["name"]
+                ))
+            
+            result_content = tool_calls
+        else:
+            result_content = content
+
+        usage = data.get("usage", {})
+        
+        return CreateResult(
+            content=result_content,
+            usage=RequestUsage(
+                prompt_tokens=usage.get("prompt_tokens", 0),
+                completion_tokens=usage.get("completion_tokens", 0)
+            ),
+            finish_reason="stop",
+            cached=False
+        )

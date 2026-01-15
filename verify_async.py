@@ -12,7 +12,8 @@ async def verify():
     
     headers = {
         "Content-Type": "application/json",
-        "Authorization": f"Bearer {api_key}"
+        "Authorization": f"Bearer {api_key}",
+        "User-Agent": "python-requests/2.32.3" 
     }
     
     payload = {

@@ -37,7 +37,5 @@ Reply with 'TERMINATE' when your task is complete."""},
     print("-" * 20)
 
 if __name__ == "__main__":
-    # Try different model names
-    models = ["gemini-1.5-pro", "gemini-1.5-flash", "gemini-2.0-flash-exp"]
-    for m in models:
-        test_request(m)
+    # Test only the model we are using
+    test_request("gemini-2.0-flash")

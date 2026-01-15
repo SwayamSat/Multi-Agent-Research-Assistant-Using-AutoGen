@@ -11,4 +11,7 @@ def approve_papers(indices: List[int], feedback: str = "") -> str:
     Returns:
         str: Confirmation message.
     """
-    return f"Papers {indices} approved. Feedback: {feedback}"
+    msg = f"User Review: Papers {indices} APPROVED."
+    if feedback:
+        msg += f" Feedback: {feedback}"
+    return msg
