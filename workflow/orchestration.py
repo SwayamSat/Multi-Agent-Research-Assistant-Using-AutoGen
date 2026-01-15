@@ -27,7 +27,7 @@ async def run_workflow():
     # For Gemini via OpenAI format: base_url="https://generativelanguage.googleapis.com/v1beta/openai/"
     
     model_client = OpenAIChatCompletionClient(
-        model="gemini-1.5-pro",
+        model="gemini-1.5-flash",
         api_key=api_key,
         base_url="https://generativelanguage.googleapis.com/v1beta/openai/" # Typical endpoint for Gemini-OpenAI compat
     )
