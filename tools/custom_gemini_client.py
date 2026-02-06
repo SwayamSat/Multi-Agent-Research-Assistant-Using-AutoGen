@@ -1,17 +1,7 @@
 import os
 import json
 import httpx
-from typing import Mapping, Any, Sequence
-from autogen_core.models import (
-    ChatCompletionClient,
-    CreateResult,
-    LLMMessage,
-    SystemMessage,
-    UserMessage,
-    AssistantMessage,
-    ModelCapabilities,
-    RequestUsage
-)
+from typing import Mapping, Any, Sequence, AsyncGenerator, Union
 from autogen_core.models import (
     ChatCompletionClient,
     CreateResult,
@@ -25,12 +15,11 @@ from autogen_core.models import (
 )
 from autogen_core.tools import Tool
 from autogen_core._types import FunctionCall
-from typing import AsyncGenerator, Union
 import asyncio
 import requests
 
 class CustomGeminiClient(ChatCompletionClient):
-    def __init__(self, api_key: str, model: str = "gemini-2.0-flash"):
+    def __init__(self, api_key: str, model: str = "gemini-2.5-flash-preview-09-2025"):
         self.api_key = api_key
         self.model = model
         self.base_url = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions"
@@ -96,147 +85,210 @@ class CustomGeminiClient(ChatCompletionClient):
         cancellation_token: Any = None,
     ) -> CreateResult:
         
-        # Convert AutoGen messages to OpenAI format
-        openai_messages = []
+        # Native Gemini API URL
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model}:generateContent"
+        
+        # Conversion Logic: AutoGen -> Gemini Native
+        contents = []
+        system_prompt_text = ""
+        
         for msg in messages:
+            role = "user" # Default
+            parts = []
+            
             if isinstance(msg, SystemMessage):
-                openai_messages.append({"role": "system", "content": msg.content})
+                # Accumulate system prompt to prepend to first user message
+                system_prompt_text += msg.content + "\n\n"
+                continue
+                
             elif isinstance(msg, UserMessage):
-                openai_messages.append({"role": "user", "content": msg.content})
+                role = "user"
+                parts = [{"text": msg.content}]
+                
             elif isinstance(msg, AssistantMessage):
+                # Assistant --> Model
+                role = "model" 
                 if isinstance(msg.content, str):
-                    openai_messages.append({"role": "assistant", "content": msg.content})
+                    source_name = getattr(msg, 'source', 'Assistant')
+                    prefix = f"[{source_name}]:"
+                    content_str = msg.content
+                    # Avoid double prefixing
+                    if not content_str.strip().startswith(prefix):
+                        parts = [{"text": f"{prefix} {content_str}"}]
+                    else:
+                        parts = [{"text": content_str}]
                 elif isinstance(msg.content, list):
-                     # Handle previous tool calls if re-sending history?
-                     # AutoGen mostly handles conversation state, but we need to serialize FunctionCall back to JSON if needed
-                     # For now assuming string content most of the time or simple turn
-                     # If msg.content is list of FunctionCalls, we should format as tool_calls
-                     # OpenAI expects 'tool_calls' field, not content
-                     tool_calls_payload = []
-                     for fc in msg.content:
-                         if isinstance(fc, FunctionCall):
-                             tool_calls_payload.append({
-                                 "id": fc.id,
-                                 "type": "function",
-                                 "function": {
-                                     "name": fc.name,
-                                     "arguments": fc.arguments
-                                 }
-                             })
-                     openai_messages.append({"role": "assistant", "content": None, "tool_calls": tool_calls_payload})
+                    # Handle Tool Calls
+                    for fc in msg.content:
+                        if isinstance(fc, FunctionCall):
+                            parts.append({
+                                "functionCall": {
+                                    "name": fc.name,
+                                    "args": json.loads(fc.arguments) if isinstance(fc.arguments, str) else fc.arguments
+                                }
+                            })
+            
+            else:
+                # Fallback for generic messages
+                role = "user"
+                if hasattr(msg, 'content'):
+                     parts = [{"text": str(msg.content)}]
+                else:
+                     continue # Skip empty/unknown messages
+            
+            if not parts:
+                continue
 
-            # Handle FunctionExecutionResult?
-            # If there are tool outputs, they come as FunctionExecutionResult?
-            # AutoGen 0.4 handles this. We need to check if msg is FunctionExecutionResult?
-            # LLMMessage is Union[...]
-            # Let's check imports for FunctionExecutionResult logic if needed.
-            # But the 'messages' argument is Sequence[LLMMessage].
-            # Provide simple support first.
+            # Strict Merging Logic
+            if contents and contents[-1]['role'] == role:
+                # Same role -> Merge
+                contents[-1]['parts'].extend(parts)
+            else:
+                contents.append({"role": role, "parts": parts})
 
-        # Prepare tools if any
-        tools_payload = []
+        # Inject System Prompt into the FIRST User message
+        if system_prompt_text:
+            if contents and contents[0]['role'] == 'user':
+                existing_parts = contents[0]['parts']
+                # Prepend to the first text part if exists
+                if existing_parts and "text" in existing_parts[0]:
+                    existing_parts[0]['text'] = f"System Instruction:\n{system_prompt_text}\n{existing_parts[0]['text']}"
+                else:
+                    # Insert as new part at beginning
+                    existing_parts.insert(0, {"text": f"System Instruction:\n{system_prompt_text}"})
+            else:
+                # If valid history starts with model, prepend new User message
+                contents.insert(0, {"role": "user", "parts": [{"text": f"System Instruction:\n{system_prompt_text}"}]})
+
+        # Ensure conversation ends with User (Gemini Requirement)
+        if contents and contents[-1]['role'] == 'model':
+            # Append synthetic user continuation
+            contents.append({"role": "user", "parts": [{"text": "Please continue based on the above context."}]})
+            
+        # If conversation is empty (only system prompt?), ensure at least one user message
+        if not contents:
+             contents.append({"role": "user", "parts": [{"text": f"System Instruction:\n{system_prompt_text}\nPlease start."}]})
+
+        # Prepare Tools
+        google_tools = []
         if tools:
-            # print(f"DEBUG: tools type: {type(tools)}")
-            # if len(tools) > 0:
-            #     print(f"DEBUG: first tool type: {type(tools[0])}")
-            #     print(f"DEBUG: first tool: {tools[0]}")
+            function_declarations = []
             for tool in tools:
                 if isinstance(tool, dict):
-                     tools_payload.append({
-                        "type": "function",
-                        "function": {
-                            "name": tool["name"],
-                            "description": tool.get("description"),
-                            "parameters": tool.get("parameters", tool.get("schema", {}))
-                        }
+                    # Raw dict
+                    function_declarations.append({
+                        "name": tool["name"],
+                        "description": tool.get("description", ""),
+                        "parameters": tool.get("parameters", tool.get("schema", {}))
                     })
                 else:
-                    tools_payload.append({
-                        "type": "function",
-                        "function": {
-                            "name": tool.name,
-                            "description": tool.description,
-                            "parameters": tool.schema["parameters"] if "parameters" in tool.schema else tool.schema
-                        }
+                    # Tool object
+                    function_declarations.append({
+                        "name": tool.name,
+                        "description": tool.description,
+                        "parameters": tool.schema["parameters"] if "parameters" in tool.schema else tool.schema
                     })
+            if function_declarations:
+                google_tools.append({"function_declarations": function_declarations})
 
+        # Construct Payload
         payload = {
-            "model": self.model,
-            "messages": openai_messages,
+            "contents": contents,
+            "safetySettings": [
+                {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
+                {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
+                {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
+                {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"}
+            ],
+            "generationConfig": {
+                "temperature": 0.7, 
+                "maxOutputTokens": 2048
+            }
         }
-        
-        if tools_payload:
-            payload["tools"] = tools_payload
-
-        # DEBUG PRINT
-        # print(f"DEBUG: URL={self.base_url}")
-        # try:
-        #     with open("debug_payload.json", "w") as f:
-        #         json.dump(payload, f, indent=2)
-        # except Exception as e:
-        #     print(f"DEBUG: Failed to write payload: {e}")
             
+        if google_tools:
+            payload["tools"] = google_tools
+
         headers = {
             "Content-Type": "application/json",
-            "Authorization": f"Bearer {self.api_key}"
+            "x-goog-api-key": self.api_key
         }
-
+        
+        # Ensure session exists (Robustness)
         if not hasattr(self, 'session'):
             from requests.adapters import HTTPAdapter
             from urllib3.util.retry import Retry
-            
             self.session = requests.Session()
             retry_strategy = Retry(
-                total=5,
-                backoff_factor=1,
-                status_forcelist=[429, 500, 502, 503, 504],
-                allowed_methods=["HEAD", "GET", "OPTIONS", "POST"],
-                # SSLEOFError is a connection error. urllib3 might handle it if we retry connection errors.
+                total=5,backoff_factor=1,status_forcelist=[429, 500, 503],
+                allowed_methods=["POST"]
             )
             adapter = HTTPAdapter(max_retries=retry_strategy)
             self.session.mount("https://", adapter)
-            self.session.mount("http://", adapter)
 
-        # Use requests via asyncio.to_thread
+        # Execute Request
         def _make_request():
             try:
-                return self.session.post(self.base_url, headers=headers, json=payload, timeout=60.0)
+                return self.session.post(url, headers=headers, json=payload, timeout=60.0)
             except Exception as e:
-                # Catch SSLEOFError specifically if requests doesn't handle it
-                raise RuntimeError(f"Connection failed after retries: {e}")
+                raise RuntimeError(f"Connection failed: {e}")
 
         response = await asyncio.to_thread(_make_request)
-            
+        
         if response.status_code != 200:
-            raise RuntimeError(f"Gemini API Error {response.status_code}: {response.text}")
+             # Attempt to dump payload on error for debugging
+             try:
+                 with open("debug_gemini_payload_error.json", "w", encoding="utf-8") as f:
+                     json.dump(payload, f, indent=2)
+                 print("DEBUG: Payload dumped to debug_gemini_payload_error.json")
+             except Exception as e:
+                 print(f"DEBUG: Failed to dump payload: {e}")
+                 
+             raise RuntimeError(f"Gemini Native API Error {response.status_code}: {response.text}")
 
         data = response.json()
-        choice = data["choices"][0]
-        message = choice["message"]
-        content = message.get("content", "")
         
-        # Handle Tool Calls response
+        if "candidates" not in data or not data["candidates"]:
+             try:
+                 with open("debug_gemini_payload_error.json", "w", encoding="utf-8") as f:
+                     json.dump(payload, f, indent=2)
+                 print("DEBUG: Payload dumped to debug_gemini_payload_error.json")
+             except Exception as e:
+                 print(f"DEBUG: Failed to dump payload: {e}")
+                 
+             error_msg = f"Gemini returned no candidates.\nResponse: {json.dumps(data, indent=2)}\nPayload dumped to debug_gemini_payload_error.json"
+             raise RuntimeError(error_msg)
+             
+        candidate = data["candidates"][0]
+        parts = candidate.get("content", {}).get("parts", [])
+        
+        # Extract Text and Function Calls
+        text_content = ""
         tool_calls = []
-        if "tool_calls" in message:
-            for tc in message["tool_calls"]:
+        
+        for part in parts:
+            if "text" in part:
+                text_content += part["text"]
+            if "functionCall" in part:
+                fc = part["functionCall"]
                 tool_calls.append(FunctionCall(
-                    id=tc["id"], 
-                    arguments=tc["function"]["arguments"], 
-                    name=tc["function"]["name"]
+                    id="call_" + fc["name"], 
+                    name=fc["name"],
+                    arguments=json.dumps(fc["args"]) 
                 ))
-            
-            result_content = tool_calls
-        else:
-            result_content = content
-
-        usage = data.get("usage", {})
+        
+        finish_reason = candidate.get("finishReason", "STOP").lower()
+        if finish_reason == "stop": finish_reason = "stop"
+        else: finish_reason = "stop" 
+        
+        usage_meta = data.get("usageMetadata", {})
         
         return CreateResult(
-            content=result_content,
+            content=tool_calls if tool_calls else text_content,
             usage=RequestUsage(
-                prompt_tokens=usage.get("prompt_tokens", 0),
-                completion_tokens=usage.get("completion_tokens", 0)
+                prompt_tokens=usage_meta.get("promptTokenCount", 0),
+                completion_tokens=usage_meta.get("candidatesTokenCount", 0)
             ),
-            finish_reason="stop",
+            finish_reason=finish_reason,
             cached=False
         )

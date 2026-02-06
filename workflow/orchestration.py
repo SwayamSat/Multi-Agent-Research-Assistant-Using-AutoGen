@@ -23,7 +23,7 @@ async def run_workflow():
     # Initialize Model Client using CustomGeminiClient
     model_client = CustomGeminiClient(
         api_key=api_key,
-        model="gemini-2.0-flash"
+        model="gemini-2.5-flash-preview-09-2025"
     )
 
     # Prepare Tools
@@ -38,31 +38,88 @@ async def run_workflow():
     agents_dict = create_research_agents(model_client, paper_discovery_tools=[paper_search_tool])
     user_proxy = create_user_proxy()
 
-    # Define the Team
-    # We use SelectorGroupChat for intelligent routing and HITL
+    # --- Deterministic Selector Logic ---
+    from autogen_core.models import ChatCompletionClient, CreateResult, RequestUsage, ModelCapabilities, ModelInfo, LLMMessage
+    from typing import Sequence, Any, Union
+
+    class DeterministicSelector(ChatCompletionClient):
+        def __init__(self, agent_order: list[str]):
+            self.agent_order = agent_order
+            self._capabilities = ModelCapabilities(vision=False, function_calling=False, json_output=False)
+            self._usage = RequestUsage(prompt_tokens=0, completion_tokens=0)
+
+        @property
+        def capabilities(self): return self._capabilities
+        @property
+        def model_capabilities(self): return self._capabilities
+        @property
+        def model_info(self): return ModelInfo(vision=False, function_calling=False, json_output=False, family="deterministic")
+        
+        def remaining_tokens(self, *args, **kwargs): return float("inf")
+        def actual_usage(self): return self._usage
+        def total_usage(self): return self._usage
+        def close(self): pass
+        def count_tokens(self, *args, **kwargs): return 0
+
+        async def create_stream(self, messages, **kwargs):
+             result = await self.create(messages, **kwargs)
+             yield result
+
+        async def create(self, messages: Sequence[LLMMessage], **kwargs) -> CreateResult:
+            prompt = messages[0].content
+            
+            # Parse Prompt to find Last Speaker and Content
+            last_speaker = None
+            prompt_str = prompt
+            
+            known_agents = self.agent_order
+            max_idx = -1
+            
+            for agent in known_agents:
+                idx = prompt_str.rfind(agent)
+                if idx > max_idx:
+                    max_idx = idx
+                    last_speaker = agent
+            
+            target_agent = "Topic_Refinement_Agent" # Default fallback
+            
+            # Check for explicit help request in recent text (simple check)
+            if "REQUEST_USER_HELP" in prompt_str[max_idx:]:
+                return CreateResult(content="User_Proxy", usage=self._usage, finish_reason="stop", cached=False)
+            
+            if last_speaker == "Gap_Analysis_Agent":
+                # Handover to User for review
+                target_agent = "User_Proxy"
+                
+            elif last_speaker == "User_Proxy":
+                # User has spoken. Restart cycle
+                target_agent = "Topic_Refinement_Agent"
+                
+            elif last_speaker == "Report_Compiler_Agent":
+                target_agent = "Gap_Analysis_Agent"
+                
+            elif last_speaker == "Insight_Synthesizer_Agent":
+                target_agent = "Report_Compiler_Agent"
+                
+            elif last_speaker == "Paper_Discovery_Agent":
+                if "Tool Call" in prompt_str[max_idx:] or "search_arxiv" in prompt_str[max_idx:]:
+                     target_agent = "Paper_Discovery_Agent"
+                else:
+                     target_agent = "Insight_Synthesizer_Agent"
+                     
+            elif last_speaker == "Topic_Refinement_Agent":
+                target_agent = "Paper_Discovery_Agent"
+            
+            return CreateResult(content=target_agent, usage=self._usage, finish_reason="stop", cached=False)
+
+    selector_client = DeterministicSelector([
+        "user", "Topic_Refinement_Agent", "Paper_Discovery_Agent", "User_Proxy", 
+        "Insight_Synthesizer_Agent", "Report_Compiler_Agent", "Gap_Analysis_Agent"
+    ])
+
+    selector_prompt = "You are a deterministic selector. This prompt is ignored by the logic."
+
     termination = TextMentionTermination(text="TERMINATE")
-    
-    selector_prompt = """You are the workflow orchestrator. Given the conversation history, select the next agent to speak.
-    
-Available Agents:
-- 'Topic_Refinement_Agent'
-- 'Paper_Discovery_Agent'
-- 'User_Proxy'
-- 'Insight_Synthesizer_Agent'
-- 'Report_Compiler_Agent'
-- 'Gap_Analysis_Agent'
-
-Rules:
-1. If the last message is from 'user' (initial request), select 'Topic_Refinement_Agent'.
-2. If the last message is from 'Topic_Refinement_Agent', select 'Paper_Discovery_Agent'.
-3. If the last message is from 'Paper_Discovery_Agent', select 'User_Proxy'.
-4. If the last message is from 'User_Proxy', select 'Insight_Synthesizer_Agent'.
-5. If the last message is from 'Insight_Synthesizer_Agent', select 'Report_Compiler_Agent'.
-6. If the last message is from 'Report_Compiler_Agent', select 'Gap_Analysis_Agent'.
-7. If the last message is from 'Gap_Analysis_Agent', return 'TERMINATE'.
-
-Output ONLY the name of the next agent.
-"""
 
     team = SelectorGroupChat(
         participants=[
@@ -73,10 +130,10 @@ Output ONLY the name of the next agent.
             agents_dict["report_agent"],
             agents_dict["gap_agent"]
         ],
-        model_client=model_client, # Use the Gemini client for selection too
+        model_client=selector_client,
         selector_prompt=selector_prompt,
         termination_condition=termination,
-        allow_repeated_speaker=False # Prevent loops
+        allow_repeated_speaker=True
     )
 
     # Run the workflow

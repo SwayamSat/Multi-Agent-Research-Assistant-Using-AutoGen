@@ -17,7 +17,7 @@ Your goal is to help the user clarify and refine their research topic.
 2. Suggest 3-5 subtopics or specific research directions.
 3. Ask clarifying questions if the topic is too broad.
 4. Output the REFINED TOPIC clearly.
-
+If you need human intervention at any point, end your message with 'REQUEST_USER_HELP'.
 """
     )
 
@@ -32,7 +32,7 @@ Your goal is to find the most relevant papers for the refined topic.
 2. You can perform multiple searches with different queries if needed.
 3. Filter results by relevance and recency (handled by the tool, but you choose the query).
 4. List the selected papers with their titles, URLs, and brief summaries.
-
+If you need human intervention at any point, end your message with 'REQUEST_USER_HELP'.
 """
     )
 
@@ -46,7 +46,7 @@ Your goal is to extract key findings from the discovered papers.
 2. Synthesize common themes, methodologies, and results.
 3. Identify contradictions or consensus among the papers.
 4. Provide a structured summary of insights.
-
+If you need human intervention at any point, end your message with 'REQUEST_USER_HELP'.
 """
     )
 
@@ -63,7 +63,7 @@ Format the report with:
 - Methodology Review
 - Conclusion
 Ensure the tone is academic and professional.
-
+If you need human intervention at any point, end your message with 'REQUEST_USER_HELP'.
 """
     )
 
@@ -76,7 +76,8 @@ Your goal is to identify missing pieces in the current literature.
 1. Analyze the compiled report.
 2. Identify unanswered questions, limitations in current studies, or underexplored areas.
 3. Suggest specific future research directions or experiments.
-Reply with 'TERMINATE' when your task is complete.
+When complete, reply with 'REQUEST_USER_REVIEW' to ask the user for feedback or approval.
+If you need human intervention at any point, end your message with 'REQUEST_USER_HELP'.
 """
     )
 
