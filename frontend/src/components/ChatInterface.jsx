@@ -1,6 +1,7 @@
 import { Send } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { useEffect, useRef, useState } from 'react';
+import { TypingEffect } from './TypingEffect';
 
 export function ChatInterface({ messages, isLoading, onSend }) {
     const [input, setInput] = useState('');
@@ -28,22 +29,31 @@ export function ChatInterface({ messages, isLoading, onSend }) {
                     </div>
                 )}
 
-                {messages.map((msg, idx) => (
-                    <div key={idx} className={`flex ${msg.type === 'user' ? 'justify-end' : 'justify-start'}`}>
-                        <div className={`max-w-3xl rounded-lg p-4 shadow-sm ${msg.agent === 'Report_Compiler' ? 'bg-white border-2 border-purple-100 w-full' :
-                            msg.type === 'user' ? 'bg-blue-600 text-white' : 'bg-white border border-gray-200'
-                            }`}>
-                            {msg.agent && (
-                                <div className="text-xs font-bold uppercase tracking-wider mb-1 text-gray-500">
-                                    {msg.agent}
+                {messages.map((msg, idx) => {
+                    const isLastMessage = idx === messages.length - 1;
+                    const isAgent = msg.type === 'agent';
+
+                    return (
+                        <div key={idx} className={`flex ${msg.type === 'user' ? 'justify-end' : 'justify-start'}`}>
+                            <div className={`max-w-3xl rounded-lg p-4 shadow-sm ${msg.agent === 'Report_Compiler' ? 'bg-white border-2 border-purple-100 w-full' :
+                                msg.type === 'user' ? 'bg-blue-600 text-white' : 'bg-white border border-gray-200'
+                                }`}>
+                                {msg.agent && (
+                                    <div className="text-xs font-bold uppercase tracking-wider mb-1 text-gray-500">
+                                        {msg.agent}
+                                    </div>
+                                )}
+                                <div className={`prose prose-sm ${msg.type === 'user' ? 'prose-invert' : ''} max-w-none`}>
+                                    {isAgent && isLastMessage ? (
+                                        <TypingEffect text={msg.content} speed={5} />
+                                    ) : (
+                                        <ReactMarkdown>{msg.content}</ReactMarkdown>
+                                    )}
                                 </div>
-                            )}
-                            <div className={`prose prose-sm ${msg.type === 'user' ? 'prose-invert' : ''} max-w-none`}>
-                                <ReactMarkdown>{msg.content}</ReactMarkdown>
                             </div>
                         </div>
-                    </div>
-                ))}
+                    );
+                })}
                 <div ref={endRef} />
             </div>
 

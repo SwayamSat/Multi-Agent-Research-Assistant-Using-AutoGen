@@ -86,6 +86,11 @@ async def stream_research_agents(request: ResearchRequest):
                     
                     if key == "Supervisor":
                         next_agent = value.get("next", "Unknown")
+                        
+                        # Emit Supervisor thought/decision as a message
+                        thought_content = f"Analyzed current state. Deciding next step: **{next_agent}**."
+                        yield f"data: {json.dumps({'type': 'message', 'agent': 'Supervisor', 'content': thought_content})}\n\n"
+                        
                         yield f"data: {json.dumps({'type': 'status', 'agent': next_agent, 'status': 'working'})}\n\n"
                     
                     else:
