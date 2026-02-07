@@ -1,6 +1,10 @@
 import os
+import json
+import asyncio
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import StreamingResponse
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from langchain_core.messages import HumanMessage
 from graph.workflow import create_workflow
@@ -10,23 +14,29 @@ load_dotenv()
 
 app = FastAPI(title="Multi-Agent Research Assistant (LangGraph + CrewAI)")
 
+# Enable CORS for Frontend (Vite defaults to port 5173)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 # Initialize Graph
 graph = create_workflow()
 
 class ResearchRequest(BaseModel):
     topic: str
 
-class ResearchResponse(BaseModel):
-    result: list
-
 @app.get("/")
 def home():
-    return {"message": "Welcome to the Multi-Agent Research Assistant API (LangGraph Edition). Use POST /researchagents to start research."}
+    return {"message": "Welcome to the Multi-Agent Research Assistant API. Use POST /research-stream for real-time updates."}
 
 @app.post("/researchagents")
 def run_research_agents(request: ResearchRequest):
     """
-    Endpoint to trigger the research agents.
+    Legacy synchronous endpoint.
     """
     topic = request.topic
     if not topic:
@@ -36,11 +46,8 @@ def run_research_agents(request: ResearchRequest):
         initial_state = {"messages": [HumanMessage(content=topic)]}
         print(f"DEBUG: Invoking graph with topic: {topic}")
         
-        # Invoke the graph
-        # Note: This is synchronous and blocking. For production, async/streaming is better.
         final_state = graph.invoke(initial_state)
         
-        # Extract messages
         messages = []
         for msg in final_state["messages"]:
             messages.append({
@@ -53,6 +60,50 @@ def run_research_agents(request: ResearchRequest):
     except Exception as e:
         print(f"ERROR: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/research-stream")
+async def stream_research_agents(request: ResearchRequest):
+    """
+    Streaming endpoint using Server-Sent Events (SSE).
+    """
+    topic = request.topic
+    if not topic:
+        raise HTTPException(status_code=400, detail="Topic is required")
+
+    async def event_generator():
+        initial_state = {"messages": [HumanMessage(content=topic)]}
+        
+        # We use graph.stream to get updates from each node
+        try:
+            # Send initial status
+            yield f"data: {json.dumps({'type': 'status', 'agent': 'Supervisor', 'status': 'planning'})}\n\n"
+            
+            # Using stream with stream_mode="values" or "updates"
+            # "updates" gives us the diff produced by the node
+            for output in graph.stream(initial_state):
+                for key, value in output.items():
+                    # key is the node name (e.g., 'Topic_Refiner', 'Supervisor')
+                    
+                    if key == "Supervisor":
+                        next_agent = value.get("next", "Unknown")
+                        yield f"data: {json.dumps({'type': 'status', 'agent': next_agent, 'status': 'working'})}\n\n"
+                    
+                    else:
+                        # Worker node content
+                        if "messages" in value and value["messages"]:
+                            last_msg = value["messages"][-1]
+                            content = last_msg.content
+                            yield f"data: {json.dumps({'type': 'message', 'agent': key, 'content': content})}\n\n"
+                            
+                            # Log completion of this agent
+                            yield f"data: {json.dumps({'type': 'status', 'agent': key, 'status': 'completed'})}\n\n"
+
+            yield f"data: {json.dumps({'type': 'status', 'agent': 'System', 'status': 'finished'})}\n\n"
+            
+        except Exception as e:
+            yield f"data: {json.dumps({'type': 'error', 'content': str(e)})}\n\n"
+
+    return StreamingResponse(event_generator(), media_type="text/event-stream")
 
 if __name__ == "__main__":
     import uvicorn
