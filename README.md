@@ -1,300 +1,249 @@
-# 🤖 Multi-Agent Research Assistant
+# Multi-Agent Research Assistant
 
-A powerful autonomous research platform powered by **LangGraph**, **CrewAI**, and **Next.js** that deploys specialized AI agents to conduct deep research, analyze documents, and generate comprehensive reports in minutes.
+A powerful AI-powered research assistant that leverages multiple specialized agents to conduct comprehensive research on any topic. Built with **LangGraph**, **CrewAI**, **Google Gemini**, and **Next.js**.
 
-![License](https://img.shields.io/badge/license-MIT-blue.svg)
-![Python](https://img.shields.io/badge/python-3.11+-blue.svg)
-![Next.js](https://img.shields.io/badge/next.js-16.1.6-black.svg)
+![Research Agent](https://img.shields.io/badge/AI-Research%20Assistant-blue)
+![Python](https://img.shields.io/badge/Python-3.11-green)
+![Next.js](https://img.shields.io/badge/Next.js-15-black)
+![FastAPI](https://img.shields.io/badge/FastAPI-Latest-teal)
 
-## ✨ Features
+## 🌟 Features
 
-- **🧠 Multi-Agent Orchestration**: Specialized agents collaborate autonomously using LangGraph workflows
-- **📊 Real-time Streaming**: Watch agents work in real-time with Server-Sent Events (SSE)
-- **🎯 Intelligent Routing**: Supervisor agent dynamically routes tasks to specialized workers
-- **🌐 Deep Web Search**: Discovers and analyzes the latest research papers and documentation
-- **📝 Structured Reports**: Generates comprehensive markdown reports with citations
-- **🎨 Modern UI**: Clean, minimal interface with dark mode support
-- **⚡ Instant Cancellation**: Stop research tasks immediately with proper backend cleanup
+- **Multi-Agent Collaboration**: Specialized AI agents work together to refine topics, discover papers, synthesize information, and generate comprehensive reports
+- **Real-Time Streaming**: Watch the research process unfold in real-time with Server-Sent Events (SSE)
+- **Intelligent Workflow**: LangGraph orchestrates agent interactions with a supervisor pattern
+- **Modern UI**: Beautiful, responsive interface built with Next.js 15 and Tailwind CSS
+- **Dark Mode**: Seamless light/dark theme switching
+- **ArXiv Integration**: Automatic discovery of relevant research papers
+- **Comprehensive Reports**: AI-generated research reports with citations and structured insights
 
 ## 🏗️ Architecture
 
 ### Backend (Python + FastAPI + LangGraph)
-```
-├── main.py                 # FastAPI server with streaming endpoints
-├── graph/
-│   ├── workflow.py        # LangGraph workflow definition
-│   ├── nodes.py           # Agent execution nodes
-│   ├── supervisor.py      # Supervisor routing logic
-│   └── state.py           # Shared state schema
-├── crew/
-│   ├── agents.py          # CrewAI agent definitions
-│   └── tasks.py           # Task definitions for each agent
-└── agents/                # Legacy AutoGen agents (deprecated)
-```
+- **LangGraph Workflow**: Orchestrates multi-agent collaboration
+- **CrewAI Agents**: Specialized agents for different research tasks
+  - Topic Refiner
+  - Paper Discovery Agent
+  - Synthesis Agent
+  - Report Writer
+  - Gap Analyzer
+- **Google Gemini**: Powers all AI agents with advanced language understanding
+- **FastAPI**: High-performance API with SSE streaming support
 
-### Frontend (Next.js + React)
-```
-frontend/
-├── src/
-│   ├── app/
-│   │   ├── page.js              # Landing page
-│   │   ├── research/page.js     # Research interface
-│   │   └── layout.js            # Root layout with theme
-│   ├── components/
-│   │   ├── ChatInterface.jsx    # Main chat UI
-│   │   ├── Footer.jsx           # Footer component
-│   │   └── ThemeToggle.jsx      # Dark mode toggle
-│   └── hooks/
-│       └── useResearchStream.js # SSE streaming hook
-└── public/                      # Static assets
-```
+### Frontend (Next.js 15)
+- **Server Components**: Optimized rendering with React Server Components
+- **Real-Time Updates**: SSE client for live research progress
+- **Responsive Design**: Mobile-first UI with Tailwind CSS
+- **Theme Support**: Light and dark mode with smooth transitions
 
-## 🚀 Getting Started
-
-### Prerequisites
+## 📋 Prerequisites
 
 - **Python 3.11+**
-- **Node.js 18+**
-- **npm or yarn**
-- **API Keys**:
-  - Google Gemini API key
-  - Serper API key (for web search)
+- **Node.js 20+**
+- **Docker** (optional, for containerized deployment)
+- **Google API Key** (for Gemini)
 
-### Installation
+## 🚀 Quick Start
 
-#### 1. Clone the Repository
-```bash
-git clone https://github.com/yourusername/multi-agent-research-assistant.git
-cd multi-agent-research-assistant
-```
+### 1. Clone the Repository
 
-#### 2. Backend Setup
-```bash
+\`\`\`bash
+git clone https://github.com/SwayamSat/A-Multi-Agent-Research-Assistant-Using-AutoGen.git
+cd A-Multi-Agent-Research-Assistant-Using-AutoGen
+\`\`\`
+
+### 2. Backend Setup
+
+\`\`\`bash
 # Create virtual environment
-python -m venv .venv
+python -m venv venv
 
 # Activate virtual environment
 # Windows:
-.venv\Scripts\activate
+venv\\Scripts\\activate
 # macOS/Linux:
-source .venv/bin/activate
+source venv/bin/activate
 
 # Install dependencies
 pip install -r requirements.txt
 
-# Configure environment variables
-cp .env.example .env
-# Edit .env and add your API keys:
-# GOOGLE_API_KEY=your_gemini_api_key
-# SERPER_API_KEY=your_serper_api_key
-```
+# Create .env file
+echo "GOOGLE_API_KEY=your_google_api_key_here" > .env
 
-#### 3. Frontend Setup
-```bash
+# Run backend
+uvicorn main:app --reload
+\`\`\`
+
+The backend will start at `http://localhost:8000`
+
+### 3. Frontend Setup
+
+\`\`\`bash
 cd frontend
+
+# Install dependencies
 npm install
-```
 
-### Running the Application
+# Create .env.local file
+echo "NEXT_PUBLIC_API_URL=http://localhost:8000" > .env.local
 
-#### Start Backend (Terminal 1)
-```bash
-# From project root
-python main.py
-# Backend runs on http://localhost:8000
-```
-
-#### Start Frontend (Terminal 2)
-```bash
-cd frontend
+# Run development server
 npm run dev
-# Frontend runs on http://localhost:3000
-```
+\`\`\`
 
-#### Access the Application
-- **Landing Page**: http://localhost:3000
-- **Research Interface**: http://localhost:3000/research
-- **API Docs**: http://localhost:8000/docs
+The frontend will start at `http://localhost:3000`
 
-## 🎯 How It Works
+## 🐳 Docker Deployment
 
-### Agent Workflow
+### Using Docker Compose (Recommended)
 
-1. **Topic Refiner** 📋
-   - Analyzes and refines the research topic
-   - Identifies key areas and scope
+\`\`\`bash
+# Build and run both services
+docker-compose up --build
 
-2. **Paper Discoverer** 🔍
-   - Searches for relevant papers and articles
-   - Uses Serper API for web search
+# Run in detached mode
+docker-compose up -d
+\`\`\`
 
-3. **Insight Synthesizer** 💡
-   - Analyzes and synthesizes findings
-   - Identifies patterns and connections
+### Manual Docker Build
 
-4. **Report Compiler** 📄
-   - Generates structured markdown reports
-   - Includes citations and references
+**Backend:**
+\`\`\`bash
+docker build -f Dockerfile.backend -t research-assistant-backend .
+docker run -p 8000:8000 --env-file .env research-assistant-backend
+\`\`\`
 
-5. **Gap Analyst** 🎯
-   - Identifies research gaps
-   - Suggests future directions
+**Frontend:**
+\`\`\`bash
+cd frontend
+docker build -t research-assistant-frontend .
+docker run -p 3000:3000 -e NEXT_PUBLIC_API_URL=http://localhost:8000 research-assistant-frontend
+\`\`\`
 
-6. **Supervisor** 🧭
-   - Routes tasks to appropriate agents
-   - Decides workflow progression
-   - Determines completion
+## ☁️ Cloud Deployment
 
-### Real-time Streaming
+### Deploy Backend to Render
 
-The application uses Server-Sent Events (SSE) to stream agent outputs in real-time:
+1. Go to [render.com](https://render.com) and create a new **Web Service**
+2. Select "Deploy an existing image from a registry"
+3. Enter image URL: `swayam619/multi-agent-research-assistant-backend:v1.0`
+4. Configure environment variables:
+   - `GOOGLE_API_KEY`: Your Google API key
+5. Deploy and copy the service URL (e.g., `https://your-app.onrender.com`)
 
-```javascript
-// Frontend receives updates as they happen
-{
-  type: 'status',
-  agent: 'Paper_Discoverer',
-  status: 'working'
-}
+### Deploy Frontend to Vercel
 
-{
-  type: 'message',
-  agent: 'Paper_Discoverer',
-  content: 'Found 15 relevant papers...'
-}
-```
+1. Push your code to GitHub
+2. Go to [vercel.com](https://vercel.com) and import your repository
+3. Set **Root Directory** to `frontend`
+4. Add environment variable:
+   - `NEXT_PUBLIC_API_URL`: Your Render backend URL (no trailing slash)
+5. Deploy
 
-## 🛠️ Configuration
+## 🔧 Configuration
 
 ### Environment Variables
 
-Create a `.env` file in the project root:
+**Backend (`.env`):**
+\`\`\`env
+GOOGLE_API_KEY=your_google_api_key_here
+\`\`\`
 
-```env
-# Required
-GOOGLE_API_KEY=your_gemini_api_key_here
-SERPER_API_KEY=your_serper_api_key_here
+**Frontend (`.env.local`):**
+\`\`\`env
+NEXT_PUBLIC_API_URL=http://localhost:8000
+\`\`\`
 
-# Optional
-LANGCHAIN_TRACING_V2=false
-LANGCHAIN_API_KEY=your_langsmith_key_here
-```
+For production, update `NEXT_PUBLIC_API_URL` to your deployed backend URL.
 
-### Agent Configuration
+## 📖 Usage
 
-Modify `crew/agents.py` to customize agent behavior:
+1. **Start the Application**: Run both backend and frontend
+2. **Enter Research Topic**: Type your research question in the input field
+3. **Watch the Magic**: Observe as multiple AI agents collaborate:
+   - Topic Refiner clarifies and structures your query
+   - Paper Discovery finds relevant research papers
+   - Synthesis Agent analyzes and combines information
+   - Report Writer generates a comprehensive report
+   - Gap Analyzer identifies areas for further research
+4. **Review Results**: Read the generated research report with citations
 
-```python
-def topic_refiner(self):
-    return Agent(
-        role="Research Topic Refinement Specialist",
-        goal="Refine and clarify research topics",
-        backstory="Expert at identifying key research areas...",
-        llm=self.gemini_llm,
-        verbose=True
-    )
-```
+### Example Topics
 
-## 📡 API Endpoints
+- "Latest advances in quantum computing"
+- "Impact of climate change on marine ecosystems"
+- "Applications of transformer models in NLP"
+- "Ethical considerations in AI development"
 
-### POST `/research-stream`
-Streams research progress in real-time.
+## 🛠️ Tech Stack
 
-**Request:**
-```json
-{
-  "topic": "Latest advances in quantum computing"
-}
-```
+### Backend
+- **FastAPI**: Modern, fast web framework
+- **LangGraph**: Agent orchestration and workflow management
+- **CrewAI**: Multi-agent framework
+- **Google Gemini**: Large language model
+- **ArXiv API**: Research paper discovery
+- **Python 3.11**: Core language
 
-**Response:** Server-Sent Events stream
-```
-data: {"type":"status","agent":"Supervisor","status":"planning"}
+### Frontend
+- **Next.js 15**: React framework with App Router
+- **React 19**: UI library
+- **Tailwind CSS**: Utility-first styling
+- **Lucide Icons**: Beautiful icon set
+- **Server-Sent Events**: Real-time streaming
 
-data: {"type":"message","agent":"Topic_Refiner","content":"..."}
+## 📁 Project Structure
 
-data: {"type":"status","agent":"System","status":"finished"}
-```
-
-### POST `/researchagents` (Legacy)
-Synchronous endpoint that returns complete results.
-
-## 🎨 UI Features
-
-- **Minimal Modern Design**: Clean black/white aesthetic with smooth animations
-- **Dark Mode**: Automatic theme switching with system preference detection
-- **Real-time Updates**: See agent progress as it happens
-- **Thinking Indicators**: Visual feedback showing which agent is working
-- **Instant Cancellation**: Stop button to halt research immediately
-- **Responsive Layout**: Works on desktop, tablet, and mobile
-
-## 🧪 Development
-
-### Project Structure
-```
+\`\`\`
 .
-├── main.py                 # FastAPI backend
-├── graph/                  # LangGraph workflow
-├── crew/                   # CrewAI agents & tasks
-├── frontend/               # Next.js frontend
-├── requirements.txt        # Python dependencies
-├── .env                    # Environment variables
-└── README.md              # This file
-```
-
-### Adding New Agents
-
-1. Define agent in `crew/agents.py`
-2. Create task in `crew/tasks.py`
-3. Add node in `graph/nodes.py`
-4. Register in `graph/workflow.py`
-5. Update supervisor routing logic
-
-### Debugging
-
-Enable verbose logging:
-```python
-# In crew/agents.py
-Agent(..., verbose=True)
-
-# In graph/nodes.py
-Crew(..., verbose=True)
-```
-
-Check backend logs for detailed execution traces.
-
-## 🚧 Known Issues & Limitations
-
-- **Cancellation**: Backend cancellation requires async node execution (work in progress)
-- **Rate Limits**: Serper API has rate limits on free tier
-- **Long Tasks**: Very long research tasks may timeout
+├── backend/
+│   ├── crew/
+│   │   ├── agents.py          # CrewAI agent definitions
+│   │   └── tools.py           # ArXiv search tools
+│   ├── graph/
+│   │   ├── nodes.py           # LangGraph node functions
+│   │   ├── state.py           # Graph state definition
+│   │   └── workflow.py        # Workflow orchestration
+│   ├── main.py                # FastAPI application
+│   ├── requirements.txt       # Python dependencies
+│   └── Dockerfile.backend     # Backend Docker config
+├── frontend/
+│   ├── src/
+│   │   ├── app/               # Next.js app directory
+│   │   ├── components/        # React components
+│   │   └── hooks/             # Custom React hooks
+│   ├── package.json           # Node dependencies
+│   └── Dockerfile             # Frontend Docker config
+├── docker-compose.yml         # Docker Compose config
+└── README.md                  # This file
+\`\`\`
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please follow these steps:
+Contributions are welcome! Please feel free to submit a Pull Request.
 
 1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
 
 ## 📝 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is open source and available under the [MIT License](LICENSE).
 
 ## 🙏 Acknowledgments
 
-- **LangGraph** - For the powerful graph-based agent orchestration
-- **CrewAI** - For the multi-agent framework
-- **Google Gemini** - For the LLM capabilities
-- **Serper** - For web search functionality
-- **Next.js** - For the modern React framework
+- **Google Gemini** for powering the AI agents
+- **LangGraph** for workflow orchestration
+- **CrewAI** for multi-agent framework
+- **ArXiv** for research paper access
+- **Next.js** team for the amazing framework
 
 ## 📧 Contact
 
-For questions or support, please open an issue on GitHub.
+For questions or support, please open an issue on GitHub or contact the maintainer.
 
 ---
 
-**Built with ❤️ using LangGraph, CrewAI, and Next.js**
+**Built with ❤️ using AI and modern web technologies**
