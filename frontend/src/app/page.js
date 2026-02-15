@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { Footer } from '@/components/Footer';
 import { Header } from '@/components/Header';
-import { ArrowRight, Sparkles, Brain, Zap, Globe, Share2, PlayCircle } from 'lucide-react';
+import { ArrowRight, Sparkles, Brain, Zap, Globe, Share2, PlayCircle, Search, Terminal, FileText, AlertCircle, User, Send, Home } from 'lucide-react';
 
 export default function LandingPage() {
   return (
@@ -59,25 +59,129 @@ export default function LandingPage() {
 
           {/* Abstract UI Visual */}
           <div className="w-full max-w-5xl mt-16 sm:mt-24 relative group">
-            <div className="absolute -inset-1 bg-gradient-to-r from-stone-200 to-stone-400 dark:from-stone-800 dark:to-stone-600 rounded-2xl blur opacity-25 group-hover:opacity-50 transition duration-1000"></div>
-            <div className="relative aspect-[16/9] sm:aspect-[21/9] bg-stone-50 dark:bg-stone-900/50 rounded-xl border border-stone-200 dark:border-stone-800 overflow-hidden flex flex-col shadow-2xl">
-              {/* Mock Browser/App Header */}
-              <div className="h-10 border-b border-stone-200 dark:border-stone-800 flex items-center px-4 gap-2 bg-white/50 dark:bg-black/50 backdrop-blur-sm">
-                <div className="flex gap-1.5">
-                  <div className="w-3 h-3 rounded-full bg-stone-200 dark:bg-stone-700"></div>
-                  <div className="w-3 h-3 rounded-full bg-stone-200 dark:bg-stone-700"></div>
-                  <div className="w-3 h-3 rounded-full bg-stone-200 dark:bg-stone-700"></div>
+            <div className="absolute -inset-1 bg-gradient-to-r from-amber-500 to-stone-500 rounded-2xl blur opacity-20 group-hover:opacity-40 transition duration-1000"></div>
+            <div className="relative aspect-[16/9] sm:aspect-[2/1] bg-stone-50 dark:bg-stone-900 rounded-xl border border-stone-200 dark:border-stone-800 overflow-hidden flex flex-col shadow-2xl">
+
+              {/* App Header */}
+              <div className="h-14 border-b border-stone-100 dark:border-stone-900 flex items-center px-4 sm:px-6 bg-white/80 dark:bg-black/80 backdrop-blur-md sticky top-0 z-20">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 flex items-center justify-center text-stone-900 dark:text-white">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="w-6 h-6"
+                    >
+                      <circle cx="12" cy="12" r="10" />
+                      <path d="M12 16v-4" />
+                      <path d="M12 8h.01" />
+                    </svg>
+                  </div>
+                  <h1 className="font-medium text-lg tracking-tight text-stone-900 dark:text-white hidden sm:block">
+                    ResearchAgent
+                  </h1>
+                </div>
+                <div className="flex items-center gap-4 ml-auto">
+                  <div className="flex items-center gap-2 text-stone-500 dark:text-stone-400">
+                    <Home size={18} />
+                    <span className="hidden sm:inline text-sm font-medium">Home</span>
+                  </div>
                 </div>
               </div>
-              {/* Mock Content */}
-              <div className="flex-1 p-6 sm:p-10 flex flex-col items-center justify-center text-stone-300 dark:text-stone-700 space-y-4">
-                <Brain size={64} className="opacity-20 animate-pulse" />
-                <div className="text-sm font-mono opacity-50">Initializing Multi-Agent System...</div>
-                <div className="flex gap-2">
-                  <span className="w-16 h-2 bg-current rounded-full opacity-20"></span>
-                  <span className="w-24 h-2 bg-current rounded-full opacity-20"></span>
-                  <span className="w-12 h-2 bg-current rounded-full opacity-20"></span>
+
+              {/* Main Content Area (Chat Interface Simulation) */}
+              <div className="flex-1 flex flex-col bg-white dark:bg-black relative overflow-hidden">
+                {/* Messages Area */}
+                <div className="flex-1 overflow-y-auto p-4 sm:p-8 space-y-6 scroll-smooth pb-32">
+
+                  {/* User Message */}
+                  <div className="flex w-full justify-end group">
+                    <div className="flex max-w-[90%] sm:max-w-[75%] flex-row-reverse items-start gap-4">
+                      <div className="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center bg-stone-900 dark:bg-stone-100 text-white dark:text-black">
+                        <User size={16} />
+                      </div>
+                      <div className="p-4 sm:p-6 shadow-sm bg-stone-900 text-stone-50 dark:bg-stone-100 dark:text-stone-900 rounded-2xl rounded-tr-sm">
+                        <div className="text-sm sm:text-base leading-relaxed">
+                          Analyze the impact of Generative AI on software engineering jobs in the next 5 years.
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Agent Message 1 (Coordinator) */}
+                  <div className="flex w-full justify-start group">
+                    <div className="flex max-w-[90%] sm:max-w-[75%] flex-row items-start gap-4">
+                      <div className="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center bg-stone-100 dark:bg-stone-900/50 text-stone-600 dark:text-stone-400">
+                        <Brain size={16} />
+                      </div>
+                      <div className="p-4 sm:p-6 shadow-sm border border-stone-100 dark:border-stone-800 rounded-2xl rounded-tl-sm bg-white dark:bg-stone-900">
+                        <div className="text-[10px] font-semibold uppercase tracking-widest mb-2 text-stone-400 dark:text-stone-500 flex items-center gap-1">
+                          Supervisor
+                        </div>
+                        <div className="text-sm sm:text-base leading-relaxed text-stone-700 dark:text-stone-300">
+                          I have initiated the research process. I'll break this down into:
+                          <ul className="list-disc pl-4 mt-2 mb-2 space-y-1">
+                            <li>Automation of coding tasks (Copilot, etc.)</li>
+                            <li>Evolution of developer roles (from coder to architect)</li>
+                            <li>Economic impact and labor market shifts</li>
+                          </ul>
+                          Assigning <span className="font-semibold text-amber-600 dark:text-amber-500">Paper Discoverer</span> to find recent studies...
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Agent Message 2 (Researcher) */}
+                  <div className="flex w-full justify-start group">
+                    <div className="flex max-w-[90%] sm:max-w-[75%] flex-row items-start gap-4">
+                      <div className="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center bg-stone-100 dark:bg-stone-900/50 text-stone-600 dark:text-stone-400">
+                        <Search size={16} />
+                      </div>
+                      <div className="p-4 sm:p-6 shadow-sm border border-stone-100 dark:border-stone-800 rounded-2xl rounded-tl-sm bg-white dark:bg-stone-900">
+                        <div className="text-[10px] font-semibold uppercase tracking-widest mb-2 text-stone-400 dark:text-stone-500 flex items-center gap-1">
+                          Paper Discoverer
+                        </div>
+                        <div className="text-sm sm:text-base leading-relaxed text-stone-700 dark:text-stone-300">
+                          Searching arXiv and IEEE Xplore for "Generative AI software engineering impact"...
+                          <br />
+                          <span className="text-xs text-stone-400 mt-2 block">Found 24 relevant papers. Initializing filtered download...</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Thinking Indicator */}
+                  <div className="flex w-full flex-col justify-start pl-12 gap-2">
+                    <div className="flex items-center gap-4 py-2 px-4 rounded-full bg-stone-50 dark:bg-stone-900/50 border border-stone-100 dark:border-stone-800 w-fit">
+                      <div className="w-2 h-2 rounded-full bg-stone-400 animate-bounce delay-0" />
+                      <div className="w-2 h-2 rounded-full bg-stone-400 animate-bounce delay-150" />
+                      <div className="w-2 h-2 rounded-full bg-stone-400 animate-bounce delay-300" />
+                      <span className="text-xs font-medium text-stone-400 uppercase tracking-widest ml-2">
+                        Insight Synthesizer Thinking...
+                      </span>
+                    </div>
+                  </div>
+
                 </div>
+
+                {/* Simulated Input Area */}
+                <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6 bg-gradient-to-t from-white via-white to-transparent dark:from-black dark:via-black dark:to-transparent pt-20">
+                  <div className="max-w-3xl mx-auto relative flex items-center gap-3">
+                    <div className="flex-1 relative">
+                      <div className="w-full pl-6 pr-14 py-4 rounded-2xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900/80 backdrop-blur-sm text-stone-400 dark:text-stone-500 shadow-xl shadow-stone-200/50 dark:shadow-none text-base">
+                        Type a research topic...
+                      </div>
+                      <div className="absolute right-2 top-2 bottom-2 p-2 bg-stone-200 dark:bg-stone-800 text-stone-400 dark:text-stone-600 rounded-xl flex items-center justify-center aspect-square">
+                        <Send size={18} />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
               </div>
             </div>
           </div>
