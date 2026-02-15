@@ -45,8 +45,8 @@ export function Footer() {
             <div className="max-w-5xl mx-auto mt-12 pt-8 border-t border-stone-100 dark:border-stone-900 flex flex-col sm:flex-row justify-between items-center text-xs text-stone-400 gap-4">
                 <p>© 2026 ResearchAgent. All rights reserved.</p>
                 <div className="flex gap-6">
-                    <Link href="#" className="hover:text-stone-900 dark:hover:text-white transition-colors">Privacy</Link>
-                    <Link href="#" className="hover:text-stone-900 dark:hover:text-white transition-colors">Terms</Link>
+                    <Link href="/privacy" className="hover:text-stone-900 dark:hover:text-white transition-colors">Privacy</Link>
+                    <Link href="/terms" className="hover:text-stone-900 dark:hover:text-white transition-colors">Terms</Link>
                 </div>
             </div>
         </footer>

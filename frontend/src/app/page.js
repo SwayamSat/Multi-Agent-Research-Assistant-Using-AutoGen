@@ -3,51 +3,16 @@
 import Link from 'next/link';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { Footer } from '@/components/Footer';
-import { ArrowRight, Sparkles, Brain, Zap, Globe, Share2 } from 'lucide-react';
+import { Header } from '@/components/Header';
+import { ArrowRight, Sparkles, Brain, Zap, Globe, Share2, PlayCircle } from 'lucide-react';
 
 export default function LandingPage() {
   return (
     <div className="flex min-h-screen w-full flex-col bg-white dark:bg-black font-sans text-stone-900 dark:text-stone-100 overflow-x-hidden selection:bg-stone-200 dark:selection:bg-stone-800">
 
+
       {/* Navigation */}
-      <header className="h-20 flex-none flex items-center px-6 sm:px-8 max-w-7xl mx-auto w-full z-20">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 flex items-center justify-center text-stone-900 dark:text-white">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="w-8 h-8"
-            >
-              <circle cx="12" cy="12" r="10" />
-              <path d="M12 16v-4" />
-              <path d="M12 8h.01" />
-            </svg>
-          </div>
-          <h1 className="font-bold text-xl tracking-tighter text-stone-900 dark:text-white">
-            ResearchAgent
-          </h1>
-        </div>
-        <div className="flex items-center gap-6 ml-auto">
-          <nav className="hidden sm:flex items-center gap-8 text-sm font-medium text-stone-600 dark:text-stone-400">
-            <Link href="#features" className="hover:text-stone-900 dark:hover:text-white transition-colors">Features</Link>
-            <Link href="#how-it-works" className="hover:text-stone-900 dark:hover:text-white transition-colors">How it works</Link>
-            <Link href="https://github.com/SwayamSat/A-Multi-Agent-Research-Assistant-Using-AutoGen" target="_blank" className="hover:text-stone-900 dark:hover:text-white transition-colors">GitHub</Link>
-          </nav>
-          <div className="h-6 w-px bg-stone-200 dark:bg-stone-800 hidden sm:block"></div>
-          <ThemeToggle />
-          <Link
-            href="/research"
-            className="hidden sm:flex items-center gap-2 px-5 py-2.5 rounded-full bg-stone-900 dark:bg-white text-white dark:text-black font-medium text-sm hover:opacity-90 transition-opacity active:scale-95"
-          >
-            Launch App
-          </Link>
-        </div>
-      </header>
+      <Header />
 
       <main className="flex-1 w-full max-w-7xl mx-auto px-6 sm:px-8 flex flex-col">
 
@@ -67,19 +32,28 @@ export default function LandingPage() {
             Deploy a squad of AI agents to research any topic, analyze documents, and generate comprehensive reports in minutes, not hours.
           </p>
 
-          <div className="flex flex-col sm:flex-row items-center gap-4 pt-4">
+          <div className="flex flex-col items-center gap-4 pt-4">
+            <div className="flex flex-col sm:flex-row items-center gap-4">
+              <Link
+                href="/research"
+                className="flex items-center gap-3 px-8 py-4 rounded-full bg-stone-900 dark:bg-white text-white dark:text-black font-semibold text-lg hover:opacity-90 transition-all hover:scale-105 active:scale-95 shadow-xl shadow-stone-200/50 dark:shadow-none"
+              >
+                Start Researching <ArrowRight size={20} />
+              </Link>
+              <Link
+                href="https://github.com/SwayamSat/A-Multi-Agent-Research-Assistant-Using-AutoGen"
+                target="_blank"
+                className="flex items-center gap-3 px-8 py-4 rounded-full bg-white dark:bg-black border border-stone-200 dark:border-stone-800 text-stone-900 dark:text-white font-medium text-lg hover:bg-stone-50 dark:hover:bg-stone-900 transition-all active:scale-95"
+              >
+                View on GitHub
+              </Link>
+            </div>
             <Link
-              href="/research"
-              className="flex items-center gap-3 px-8 py-4 rounded-full bg-stone-900 dark:bg-white text-white dark:text-black font-semibold text-lg hover:opacity-90 transition-all hover:scale-105 active:scale-95 shadow-xl shadow-stone-200/50 dark:shadow-none"
-            >
-              Start Researching <ArrowRight size={20} />
-            </Link>
-            <Link
-              href="https://github.com/SwayamSat/A-Multi-Agent-Research-Assistant-Using-AutoGen"
-              target="_blank"
+              href="/how-it-works"
               className="flex items-center gap-3 px-8 py-4 rounded-full bg-white dark:bg-black border border-stone-200 dark:border-stone-800 text-stone-900 dark:text-white font-medium text-lg hover:bg-stone-50 dark:hover:bg-stone-900 transition-all active:scale-95"
             >
-              View on GitHub
+              <PlayCircle size={20} />
+              How it works
             </Link>
           </div>
 
