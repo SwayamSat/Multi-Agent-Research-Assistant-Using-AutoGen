@@ -89,36 +89,54 @@ echo "NEXT_PUBLIC_API_URL=http://localhost:8000" > .env.local
 
 # Run development server
 npm run dev
-\`\`\`
+```
 
 The frontend will start at `http://localhost:3000`
 
 ## 🐳 Docker Deployment
 
-### Using Docker Compose (Recommended)
+> **Note**: This project is fully containerized! You can run the backend and frontend separately using Docker.
 
-\`\`\`bash
+### Option 1: Use Pre-built Images (Fastest)
+
+Pull the pre-built images from Docker Hub:
+
+**Backend:**
+```bash
+docker pull swayam619/multi-agent-research-assistant-backend:v1.0
+docker run -p 8000:8000 -e GOOGLE_API_KEY=your_api_key_here swayam619/multi-agent-research-assistant-backend:v1.0
+```
+
+**Frontend:**
+```bash
+docker pull swayam619/multi-agent-research-assistant-frontend:v1.0
+docker run -p 3000:3000 -e NEXT_PUBLIC_API_URL=http://localhost:8000 swayam619/multi-agent-research-assistant-frontend:v1.0
+```
+
+### Option 2: Using Docker Compose (Recommended for Local Development)
+
+```bash
 # Build and run both services
 docker-compose up --build
 
 # Run in detached mode
 docker-compose up -d
-\`\`\`
+```
 
-### Manual Docker Build
+### Option 3: Manual Docker Build
 
 **Backend:**
-\`\`\`bash
+```bash
 docker build -f Dockerfile.backend -t research-assistant-backend .
 docker run -p 8000:8000 --env-file .env research-assistant-backend
-\`\`\`
+```
 
 **Frontend:**
-\`\`\`bash
+```bash
 cd frontend
 docker build -t research-assistant-frontend .
 docker run -p 3000:3000 -e NEXT_PUBLIC_API_URL=http://localhost:8000 research-assistant-frontend
-\`\`\`
+```
 
 ## ☁️ Cloud Deployment
 
@@ -145,14 +163,14 @@ docker run -p 3000:3000 -e NEXT_PUBLIC_API_URL=http://localhost:8000 research-as
 ### Environment Variables
 
 **Backend (`.env`):**
-\`\`\`env
+```env
 GOOGLE_API_KEY=your_google_api_key_here
-\`\`\`
+```
 
 **Frontend (`.env.local`):**
-\`\`\`env
+```env
 NEXT_PUBLIC_API_URL=http://localhost:8000
-\`\`\`
+```
 
 For production, update `NEXT_PUBLIC_API_URL` to your deployed backend URL.
 
@@ -194,29 +212,39 @@ For production, update `NEXT_PUBLIC_API_URL` to your deployed backend URL.
 
 ## 📁 Project Structure
 
-\`\`\`
+```
 .
-├── backend/
-│   ├── crew/
-│   │   ├── agents.py          # CrewAI agent definitions
-│   │   └── tools.py           # ArXiv search tools
-│   ├── graph/
-│   │   ├── nodes.py           # LangGraph node functions
-│   │   ├── state.py           # Graph state definition
-│   │   └── workflow.py        # Workflow orchestration
-│   ├── main.py                # FastAPI application
-│   ├── requirements.txt       # Python dependencies
-│   └── Dockerfile.backend     # Backend Docker config
-├── frontend/
+├── crew/                      # CrewAI agent definitions
+│   ├── agents.py              # Multi-agent definitions
+│   └── tools.py               # ArXiv search tools
+├── graph/                     # LangGraph workflow
+│   ├── nodes.py               # Graph node functions
+│   ├── state.py               # State management
+│   └── workflow.py            # Workflow orchestration
+├── frontend/                  # Next.js frontend
 │   ├── src/
 │   │   ├── app/               # Next.js app directory
+│   │   │   ├── page.js        # Landing page
+│   │   │   ├── research/      # Research page
+│   │   │   ├── how-it-works/  # Info pages
+│   │   │   ├── privacy/       # Privacy policy
+│   │   │   └── terms/         # Terms of service
 │   │   ├── components/        # React components
+│   │   │   ├── Header.jsx     # Navigation header
+│   │   │   ├── Footer.jsx     # Footer component
+│   │   │   ├── ChatInterface.jsx  # Chat UI
+│   │   │   └── ThemeToggle.jsx    # Dark mode toggle
 │   │   └── hooks/             # Custom React hooks
+│   │       └── useResearchStream.js  # SSE streaming
 │   ├── package.json           # Node dependencies
 │   └── Dockerfile             # Frontend Docker config
+├── main.py                    # FastAPI application
+├── requirements.txt           # Python dependencies
+├── Dockerfile.backend         # Backend Docker config
 ├── docker-compose.yml         # Docker Compose config
+├── .env.example               # Environment template
 └── README.md                  # This file
-\`\`\`
+```
 
 ## 🤝 Contributing
 
