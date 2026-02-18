@@ -9,7 +9,7 @@ import os
 # Define the list of workers
 workers = ["Topic_Refiner", "Paper_Discoverer", "Insight_Synthesizer", "Report_Compiler", "Gap_Analyst"]
 
-def supervisor_node(state: AgentState):
+async def supervisor_node(state: AgentState):
     """
     The Supervisor node decides which agent should act next.
     """
@@ -28,9 +28,8 @@ def supervisor_node(state: AgentState):
     
     # We can use a simpler LLM call here since it's just routing
     api_key = os.getenv("GEMINI_API_KEY")
-    llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash-preview-09-2025", api_key=api_key)
+    llm = ChatGoogleGenerativeAI(model="models/gemini-2.5-flash", api_key=api_key)
     
-    messages = state["messages"]
     
     # Simple prompt
     prompt = ChatPromptTemplate.from_messages([
@@ -40,7 +39,8 @@ def supervisor_node(state: AgentState):
     ])
     
     chain = prompt | llm
-    result = chain.invoke({"messages": messages})
+    # Use ainvoke for async execution
+    result = await chain.ainvoke({"messages": messages})
     next_agent = result.content.strip().replace("'", "").replace('"', "")
     
     print(f"\n[Supervisor]: Logic thinks next step is '{next_agent}'")

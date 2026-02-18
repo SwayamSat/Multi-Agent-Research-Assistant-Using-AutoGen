@@ -1,16 +1,17 @@
 import os
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
+
 import json
 import asyncio
-from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from langchain_core.messages import HumanMessage
 from graph.workflow import create_workflow
-
-# Load environment variables
-load_dotenv()
 
 app = FastAPI(title="Multi-Agent Research Assistant (LangGraph + CrewAI)")
 
@@ -33,8 +34,15 @@ class ResearchRequest(BaseModel):
 def home():
     return {"message": "Welcome to the Multi-Agent Research Assistant API. Use POST /research-stream for real-time updates."}
 
+@app.get("/health")
+def health_check():
+    """
+    Health check endpoint to verify backend status.
+    """
+    return {"status": "ok", "service": "research-assistant-backend"}
+
 @app.post("/researchagents")
-def run_research_agents(request: ResearchRequest):
+async def run_research_agents(request: ResearchRequest):
     """
     Legacy synchronous endpoint.
     """
@@ -46,7 +54,7 @@ def run_research_agents(request: ResearchRequest):
         initial_state = {"messages": [HumanMessage(content=topic)]}
         print(f"DEBUG: Invoking graph with topic: {topic}")
         
-        final_state = graph.invoke(initial_state)
+        final_state = await graph.ainvoke(initial_state, config={"recursion_limit": 50})
         
         messages = []
         for msg in final_state["messages"]:
@@ -79,7 +87,7 @@ async def stream_research_agents(request: Request, body: ResearchRequest):
             yield f"data: {json.dumps({'type': 'status', 'agent': 'Supervisor', 'status': 'planning'})}\n\n"
             
             # Using stream with stream_mode="updates" ensures we get the output of each node as it finishes
-            for output in graph.stream(initial_state, stream_mode="updates"):
+            async for output in graph.astream(initial_state, stream_mode="updates", config={"recursion_limit": 50}):
                 if await request.is_disconnected():
                     print("DEBUG: Client disconnected. Stopping research.")
                     break

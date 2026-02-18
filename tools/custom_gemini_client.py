@@ -19,7 +19,7 @@ import asyncio
 import requests
 
 class CustomGeminiClient(ChatCompletionClient):
-    def __init__(self, api_key: str, model: str = "gemini-2.5-flash-preview-09-2025"):
+    def __init__(self, api_key: str, model: str = "models/gemini-2.5-flash"):
         self.api_key = api_key
         self.model = model
         self.base_url = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions"

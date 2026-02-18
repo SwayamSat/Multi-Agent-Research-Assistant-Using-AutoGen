@@ -12,9 +12,12 @@ class ResearchTasks:
             agent=agent
         )
 
-    def discovery_task(self, agent):
+    def discovery_task(self, agent, refined_topic):
         return Task(
-            description="""Using the refined topic from the previous task, search for relevant papers on arXiv.
+            description=f"""Using the refined topic from the previous task:
+            "{refined_topic}"
+            
+            Search for relevant papers on arXiv.
             1. Use the search_arxiv tool.
             2. Find at least 3-5 relevant papers.
             3. Return a list of papers with their Titles, URLs, and Summaries.""",
@@ -22,9 +25,11 @@ class ResearchTasks:
             agent=agent
         )
 
-    def synthesis_task(self, agent):
+    def synthesis_task(self, agent, papers):
         return Task(
-            description="""Analyze the papers found in the previous task.
+            description=f"""Analyze the papers found in the previous task:
+            {papers}
+            
             1. Extract key findings, methodologies, and results.
             2. Identify common themes and contradictions.
             3. Synthesize this information into a set of core insights.""",
@@ -32,9 +37,11 @@ class ResearchTasks:
             agent=agent
         )
 
-    def report_task(self, agent):
+    def report_task(self, agent, insights):
         return Task(
-            description="""Compile a comprehensive research report based on the synthesized insights.
+            description=f"""Compile a comprehensive research report based on the synthesized insights:
+            {insights}
+            
             The report must include:
             - Title
             - Executive Summary
@@ -46,9 +53,11 @@ class ResearchTasks:
             agent=agent
         )
 
-    def gap_analysis_task(self, agent):
+    def gap_analysis_task(self, agent, report):
         return Task(
-            description="""Analyze the generated research report.
+            description=f"""Analyze the generated research report:
+            {report}
+            
             1. Identify what is missing in the current literature.
             2. Highlight limitations of the studies found.
             3. Propose 3 specific directions for future research.

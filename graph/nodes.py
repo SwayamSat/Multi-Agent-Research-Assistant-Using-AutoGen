@@ -1,3 +1,4 @@
+import asyncio
 from langchain_core.messages import HumanMessage, AIMessage
 from crew.agents import ResearchAgents
 from crew.tasks import ResearchTasks
@@ -8,14 +9,16 @@ from graph.state import AgentState
 _agents = ResearchAgents()
 _tasks = ResearchTasks()
 
-def _run_task(agent, task_func, state: AgentState):
+async def _run_task_async(agent, task_func, state: AgentState):
     """
-    Helper to run a single task with a single agent.
+    Helper to run a single task with a single agent asynchronously.
     """
     messages = state["messages"]
     last_message = messages[-1].content
     
     # Create the task
+    # Note: Task creation is fast/local, so it can remain sync or be wrapped if needed.
+    # Assuming task creation doesn't block significantly.
     task = task_func(agent, last_message if "Refinement" in agent.role else state)
 
     # Note: CrewAI is designed for teams, but we can run a crew of 1 for granular control
@@ -26,49 +29,51 @@ def _run_task(agent, task_func, state: AgentState):
         verbose=True
     )
     
-    result = crew.kickoff()
+    # Run kickoff in a separate thread to avoid blocking the event loop
+    result = await asyncio.to_thread(crew.kickoff)
     return {"messages": [AIMessage(content=str(result))]}
 
-def topic_refiner_node(state: AgentState):
+async def topic_refiner_node(state: AgentState):
     agent = _agents.topic_refiner()
-    # For refiner, we pass the raw topic. For others, context is usually implicit or passed differently.
-    # Here simplification: we pass the last message content as the input.
     messages = state["messages"]
     topic = messages[-1].content
-    
-    # Create task
     task = _tasks.refine_task(agent, topic)
-    
     crew = Crew(agents=[agent], tasks=[task], verbose=True)
-    result = crew.kickoff()
+    result = await asyncio.to_thread(crew.kickoff)
     return {"messages": [AIMessage(content=f"Refinement_Agent: {result}")]}
 
-def paper_discoverer_node(state: AgentState):
+async def paper_discoverer_node(state: AgentState):
     agent = _agents.paper_discoverer()
-    # The agent needs the refined topic. In a real graph, we might parse it.
-    # Assuming previous message contains the refined topic/instructions.
-    task = _tasks.discovery_task(agent)
+    messages = state["messages"]
+    refined_topic = messages[-1].content
+    task = _tasks.discovery_task(agent, refined_topic)
     crew = Crew(agents=[agent], tasks=[task], verbose=True)
-    result = crew.kickoff()
+    result = await asyncio.to_thread(crew.kickoff)
     return {"messages": [AIMessage(content=f"Discovery_Agent: {result}")]}
 
-def insight_synthesizer_node(state: AgentState):
+async def insight_synthesizer_node(state: AgentState):
     agent = _agents.insight_synthesizer()
-    task = _tasks.synthesis_task(agent)
+    messages = state["messages"]
+    papers = messages[-1].content
+    task = _tasks.synthesis_task(agent, papers)
     crew = Crew(agents=[agent], tasks=[task], verbose=True)
-    result = crew.kickoff()
+    result = await asyncio.to_thread(crew.kickoff)
     return {"messages": [AIMessage(content=f"Insight_Agent: {result}")]}
 
-def report_compiler_node(state: AgentState):
+async def report_compiler_node(state: AgentState):
     agent = _agents.report_compiler()
-    task = _tasks.report_task(agent)
+    messages = state["messages"]
+    insights = messages[-1].content
+    task = _tasks.report_task(agent, insights)
     crew = Crew(agents=[agent], tasks=[task], verbose=True)
-    result = crew.kickoff()
+    result = await asyncio.to_thread(crew.kickoff)
     return {"messages": [AIMessage(content=f"Report_Agent: {result}")]}
 
-def gap_analyst_node(state: AgentState):
+async def gap_analyst_node(state: AgentState):
     agent = _agents.gap_analyst()
-    task = _tasks.gap_analysis_task(agent)
+    messages = state["messages"]
+    report = messages[-1].content
+    task = _tasks.gap_analysis_task(agent, report)
     crew = Crew(agents=[agent], tasks=[task], verbose=True)
-    result = crew.kickoff()
+    result = await asyncio.to_thread(crew.kickoff)
     return {"messages": [AIMessage(content=f"Gap_Agent: {result}")]}
